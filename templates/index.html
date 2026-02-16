@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oncology Chatbot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: black;
+            font-family: 'Poppins', sans-serif;
+            color: white;
+        }
+        .chat-container {
+            max-width: 800px;
+            margin: 50px auto;
+            margin-top: 10%;
+            padding: 20px;
+            background-color: #333;
+            border-radius: 10px;
+        }
+        .chat-heading {
+            text-align: center;
+            font-size: 2.5em;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: #ffd700; /* Golden color for the heading */
+        }
+        .chat-input {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            height: 100px;
+        }
+        .chat-button {
+            background-color: green;
+            color: white;
+            padding: 10px 20px;
+            font-size: 1.2em;
+        }
+        .chat-response {
+            background-color: #444;
+            padding: 15px;
+            border-radius: 5px;
+            min-height: 100px;
+            margin-top: 20px;
+        }
+        .accordion {
+            margin-top: 20px;
+            background-color: #444;
+            border-radius: 5px;
+        }
+        .accordion-button {
+            color: white;
+            background-color: #555;
+        }
+        .accordion-body {
+            color: white;
+        }
+        pre {
+            white-space: pre-wrap;
+        }
+        .source-item {
+            border-left: 3px solid #ffd700;
+            padding-left: 10px;
+            margin: 10px 0;
+            font-size: 0.9rem;
+            color: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container chat-container">
+        <h1 class="chat-heading">Medical RAG QA App</h1>
+
+        <div class="accordion" id="appDescriptionAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="descriptionHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDescription" aria-expanded="true" aria-controls="collapseDescription">
+                        About This App
+                    </button>
+                </h2>
+                <div id="collapseDescription" class="accordion-collapse collapse" aria-labelledby="descriptionHeading" data-bs-parent="#appDescriptionAccordion">
+                    <div class="accordion-body text-dark">
+                        <p>This RAG app uses <strong>Sentence Transformers (all-MiniLM-L6-v2)</strong> for embeddings, <strong>FAISS</strong> as the vector store, and <strong>Groq (llama-3.1-8b-instant)</strong> as the LLM.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <textarea id="userInput" class="form-control chat-input" placeholder="Type your query here..."></textarea>
+                <button id="submitBtn" class="btn chat-button">Submit</button>
+                <div id="response" class="chat-response"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('submitBtn').addEventListener('click', async function() {
+            const userInput = document.getElementById('userInput').value.trim();
+            if (!userInput) {
+                alert('Please enter a question.');
+                return;
+            }
+
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerHTML = '<p>Processing...</p>';
+
+            try {
+                const response = await fetch('/get_response', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'   // Tell the server we're sending JSON
+                    },
+                    body: JSON.stringify({ question: userInput })   // Use 'question' field (expected by backend)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Build the answer section
+                let html = `<p><strong>Answer:</strong> ${data.answer}</p>`;
+
+                // Add sources if available
+                if (data.sources && data.sources.length > 0) {
+                    html += '<br><strong>Sources:</strong><div style="margin-top:10px;">';
+                    data.sources.forEach(src => {
+                        html += `<div class="source-item">
+                                    <b>[${src.index}]</b> ${src.source} (page ${src.page})<br>
+                                    <small>${src.preview}</small>
+                                 </div>`;
+                    });
+                    html += '</div>';
+                }
+
+                responseDiv.innerHTML = html;
+            } catch (error) {
+                console.error('Error:', error);
+                responseDiv.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
