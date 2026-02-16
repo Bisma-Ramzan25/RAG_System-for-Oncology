@@ -3,4 +3,4 @@ sentence-transformers
 faiss-cpu
 langchain-groq
 python-dotenv
-pickle5
+
